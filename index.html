@@ -3,56 +3,85 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Retirement & Asset Allocation Planner</title>
+<title>Advanced Global Retirement & FIRE Planner</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
+
 body{
-font-family: Arial;
-background:#f4f6fb;
-margin:40px;
+font-family: Arial, Helvetica, sans-serif;
+margin:0;
+background-image:url("https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3");
+background-size:cover;
+background-attachment:fixed;
+}
+
+.overlay{
+background:rgba(255,255,255,0.94);
+min-height:100vh;
+padding:40px;
 }
 
 h1{
-color:#1e3c72;
+text-align:center;
+color:#0b3d91;
 }
 
 .container{
 display:grid;
 grid-template-columns:1fr 1fr;
-gap:30px;
+gap:25px;
+margin-top:20px;
 }
 
 .card{
 background:white;
 padding:20px;
 border-radius:10px;
-box-shadow:0 2px 10px rgba(0,0,0,0.1);
+box-shadow:0 4px 15px rgba(0,0,0,0.1);
 }
 
 input,select{
-margin:5px;
 padding:6px;
+margin:5px;
 }
 
 button{
-background:#1e3c72;
-color:white;
-padding:10px 16px;
+padding:10px 18px;
 border:none;
-border-radius:5px;
+border-radius:6px;
+background:#0b3d91;
+color:white;
 cursor:pointer;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:10px;
+}
+
+th,td{
+padding:8px;
+border-bottom:1px solid #ddd;
+}
+
+th{
+background:#f1f5ff;
 }
 
 canvas{
 margin-top:20px;
 }
+
 </style>
 </head>
 
 <body>
 
-<h1>Retirement & FIRE Planner</h1>
+<div class="overlay">
+
+<h1>Advanced Global Retirement & FIRE Planner</h1>
 
 <div class="container">
 
@@ -60,8 +89,8 @@ margin-top:20px;
 
 <h3>Inputs</h3>
 
-Assets ₹
-<input id="assets" value="30000000"><br>
+Monthly Income Goal (₹)
+<input id="income" value="100000"><br>
 
 Years
 <input id="years" value="30"><br>
@@ -75,8 +104,8 @@ Debt Return %
 Gold Return %
 <input id="gold" value="5"><br>
 
-Inflation %
-<input id="inflation" value="6"><br>
+INVIT Yield %
+<input id="invit" value="8"><br>
 
 Risk Profile
 
@@ -88,23 +117,26 @@ Risk Profile
 
 <br><br>
 
-<button onclick="runPlanner()">Run Simulation</button>
+<button onclick="runPlanner()">Run Planner</button>
 
 </div>
 
 <div class="card">
 
-<h3>Results</h3>
+<h3>Required Portfolio</h3>
 
-<div id="allocation"></div>
-<div id="withdraw"></div>
+<div id="portfolioNeeded"></div>
+
+<h3>Asset Allocation</h3>
+
+<table id="allocationTable"></table>
 
 </div>
 
 </div>
 
 <div class="card">
-<h3>Portfolio Growth</h3>
+<h3>Portfolio Growth Projection</h3>
 <canvas id="growthChart"></canvas>
 </div>
 
@@ -114,8 +146,40 @@ Risk Profile
 </div>
 
 <div class="card">
-<h3>Suggested Funds</h3>
-<div id="funds"></div>
+<h3>Suggested Assets</h3>
+
+<b>🇮🇳 India Equity</b>
+<ul>
+<li>Parag Parikh Flexi Cap Fund</li>
+<li>Nifty 50 Index Fund</li>
+</ul>
+
+<b>🇺🇸 US ETFs</b>
+<ul>
+<li>VOO (S&P 500 ETF)</li>
+<li>VTI (Total US Market ETF)</li>
+<li>QQQ (Nasdaq ETF)</li>
+</ul>
+
+<b>🏦 Debt</b>
+<ul>
+<li>Corporate Bond Funds</li>
+<li>Target Maturity Funds</li>
+</ul>
+
+<b>🥇 Gold</b>
+<ul>
+<li>Gold ETF</li>
+</ul>
+
+<b>🏗 INVIT</b>
+<ul>
+<li>PowerGrid InvIT</li>
+<li>India Grid Trust</li>
+</ul>
+
+</div>
+
 </div>
 
 <script>
@@ -123,54 +187,63 @@ Risk Profile
 function getAllocation(risk){
 
 if(risk=="conservative")
-return {eq:0.4,debt:0.5,gold:0.1}
+return {india:0.25,us:0.20,debt:0.35,gold:0.10,invit:0.10}
 
 if(risk=="balanced")
-return {eq:0.6,debt:0.3,gold:0.1}
+return {india:0.35,us:0.25,debt:0.20,gold:0.10,invit:0.10}
 
-return {eq:0.75,debt:0.15,gold:0.1}
+return {india:0.40,us:0.30,debt:0.10,gold:0.10,invit:0.10}
 
 }
 
 function runPlanner(){
 
-let assets=parseFloat(document.getElementById("assets").value)
+let income=parseFloat(document.getElementById("income").value)
 let years=parseInt(document.getElementById("years").value)
 
 let eq=parseFloat(document.getElementById("eq").value)/100
 let debt=parseFloat(document.getElementById("debt").value)/100
 let gold=parseFloat(document.getElementById("gold").value)/100
+let invit=parseFloat(document.getElementById("invit").value)/100
 
 let risk=document.getElementById("risk").value
 
 let alloc=getAllocation(risk)
 
-let eqAmt=assets*alloc.eq
-let debtAmt=assets*alloc.debt
-let goldAmt=assets*alloc.gold
+let annualIncome=income*12
 
-document.getElementById("allocation").innerHTML=
-"<b>Asset Allocation</b><br>"+
-"Equity ₹"+eqAmt.toLocaleString()+"<br>"+
-"Debt ₹"+debtAmt.toLocaleString()+"<br>"+
-"Gold ₹"+goldAmt.toLocaleString()
+let requiredPortfolio=annualIncome/0.04
 
-let withdraw=assets*0.04/12
+document.getElementById("portfolioNeeded").innerHTML=
+"<b>₹"+requiredPortfolio.toLocaleString()+"</b> required to generate ₹"+income.toLocaleString()+" per month"
 
-document.getElementById("withdraw").innerHTML=
-"<br><b>Safe Withdrawal</b><br>₹"+withdraw.toLocaleString()+" per month"
+let table="<tr><th>Asset</th><th>%</th><th>Amount</th></tr>"
 
-runGrowth(assets,years,alloc,eq,debt,gold)
+table+=row("India Equity",alloc.india,requiredPortfolio)
+table+=row("US Equity",alloc.us,requiredPortfolio)
+table+=row("Debt",alloc.debt,requiredPortfolio)
+table+=row("Gold",alloc.gold,requiredPortfolio)
+table+=row("INVIT",alloc.invit,requiredPortfolio)
 
-let results=runMonteCarlo(assets,years,alloc,eq,debt,gold)
+document.getElementById("allocationTable").innerHTML=table
+
+runGrowth(requiredPortfolio,years,alloc,eq,debt,gold,invit)
+
+let results=runMonteCarlo(requiredPortfolio,years,alloc,eq,debt,gold,invit)
 
 drawMC(results)
 
-showFunds()
+}
+
+function row(name,pct,total){
+
+let amt=total*pct
+
+return "<tr><td>"+name+"</td><td>"+(pct*100)+"%</td><td>₹"+amt.toLocaleString()+"</td></tr>"
 
 }
 
-function runGrowth(start,years,alloc,eq,debt,gold){
+function runGrowth(start,years,alloc,eq,debt,gold,invit){
 
 let labels=[]
 let data=[]
@@ -181,17 +254,26 @@ for(let i=0;i<=years;i++){
 labels.push(i)
 data.push(value)
 
-value=value*(1+(alloc.eq*eq+alloc.debt*debt+alloc.gold*gold))
+let r=
+alloc.india*eq+
+alloc.us*eq+
+alloc.debt*debt+
+alloc.gold*gold+
+alloc.invit*invit
+
+value=value*(1+r)
 
 }
 
 new Chart(document.getElementById("growthChart"),{
+
 type:"line",
+
 data:{
 labels:labels,
 datasets:[{label:"Portfolio Value",data:data}]
-},
-options:{responsive:true}
+}
+
 })
 
 }
@@ -207,7 +289,7 @@ return mean+z*sd
 
 }
 
-function runMonteCarlo(start,years,alloc,eq,debt,gold){
+function runMonteCarlo(start,years,alloc,eq,debt,gold,invit){
 
 let runs=2000
 let results=[]
@@ -221,8 +303,14 @@ for(let y=0;y<years;y++){
 let er=randn(eq,0.18)
 let dr=randn(debt,0.05)
 let gr=randn(gold,0.12)
+let ir=randn(invit,0.05)
 
-let total=alloc.eq*er+alloc.debt*dr+alloc.gold*gr
+let total=
+alloc.india*er+
+alloc.us*er+
+alloc.debt*dr+
+alloc.gold*gr+
+alloc.invit*ir
 
 value=value*(1+total)
 
@@ -250,29 +338,6 @@ datasets:[{label:"Ending Portfolio Value",data:data}]
 }
 
 })
-
-}
-
-function showFunds(){
-
-let html=
-
-"<b>Equity Funds</b><ul>"+
-"<li>Parag Parikh Flexi Cap Fund</li>"+
-"<li>UTI Nifty 50 Index Fund</li>"+
-"<li>ICICI Prudential Nasdaq 100 Index Fund</li>"+
-"</ul>"+
-
-"<b>Debt Funds</b><ul>"+
-"<li>HDFC Corporate Bond Fund</li>"+
-"<li>ICICI Prudential Corporate Bond Fund</li>"+
-"</ul>"+
-
-"<b>Gold</b><ul>"+
-"<li>Nippon India Gold ETF</li>"+
-"</ul>"
-
-document.getElementById("funds").innerHTML=html
 
 }
 
