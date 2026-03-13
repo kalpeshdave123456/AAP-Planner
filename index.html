@@ -1,0 +1,282 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Retirement & Asset Allocation Planner</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body{
+font-family: Arial;
+background:#f4f6fb;
+margin:40px;
+}
+
+h1{
+color:#1e3c72;
+}
+
+.container{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:30px;
+}
+
+.card{
+background:white;
+padding:20px;
+border-radius:10px;
+box-shadow:0 2px 10px rgba(0,0,0,0.1);
+}
+
+input,select{
+margin:5px;
+padding:6px;
+}
+
+button{
+background:#1e3c72;
+color:white;
+padding:10px 16px;
+border:none;
+border-radius:5px;
+cursor:pointer;
+}
+
+canvas{
+margin-top:20px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Retirement & FIRE Planner</h1>
+
+<div class="container">
+
+<div class="card">
+
+<h3>Inputs</h3>
+
+Assets ₹
+<input id="assets" value="30000000"><br>
+
+Years
+<input id="years" value="30"><br>
+
+Equity Return %
+<input id="eq" value="11"><br>
+
+Debt Return %
+<input id="debt" value="6.5"><br>
+
+Gold Return %
+<input id="gold" value="5"><br>
+
+Inflation %
+<input id="inflation" value="6"><br>
+
+Risk Profile
+
+<select id="risk">
+<option value="conservative">Conservative</option>
+<option value="balanced" selected>Balanced</option>
+<option value="aggressive">Aggressive</option>
+</select>
+
+<br><br>
+
+<button onclick="runPlanner()">Run Simulation</button>
+
+</div>
+
+<div class="card">
+
+<h3>Results</h3>
+
+<div id="allocation"></div>
+<div id="withdraw"></div>
+
+</div>
+
+</div>
+
+<div class="card">
+<h3>Portfolio Growth</h3>
+<canvas id="growthChart"></canvas>
+</div>
+
+<div class="card">
+<h3>Monte Carlo Simulation</h3>
+<canvas id="mcChart"></canvas>
+</div>
+
+<div class="card">
+<h3>Suggested Funds</h3>
+<div id="funds"></div>
+</div>
+
+<script>
+
+function getAllocation(risk){
+
+if(risk=="conservative")
+return {eq:0.4,debt:0.5,gold:0.1}
+
+if(risk=="balanced")
+return {eq:0.6,debt:0.3,gold:0.1}
+
+return {eq:0.75,debt:0.15,gold:0.1}
+
+}
+
+function runPlanner(){
+
+let assets=parseFloat(document.getElementById("assets").value)
+let years=parseInt(document.getElementById("years").value)
+
+let eq=parseFloat(document.getElementById("eq").value)/100
+let debt=parseFloat(document.getElementById("debt").value)/100
+let gold=parseFloat(document.getElementById("gold").value)/100
+
+let risk=document.getElementById("risk").value
+
+let alloc=getAllocation(risk)
+
+let eqAmt=assets*alloc.eq
+let debtAmt=assets*alloc.debt
+let goldAmt=assets*alloc.gold
+
+document.getElementById("allocation").innerHTML=
+"<b>Asset Allocation</b><br>"+
+"Equity ₹"+eqAmt.toLocaleString()+"<br>"+
+"Debt ₹"+debtAmt.toLocaleString()+"<br>"+
+"Gold ₹"+goldAmt.toLocaleString()
+
+let withdraw=assets*0.04/12
+
+document.getElementById("withdraw").innerHTML=
+"<br><b>Safe Withdrawal</b><br>₹"+withdraw.toLocaleString()+" per month"
+
+runGrowth(assets,years,alloc,eq,debt,gold)
+
+let results=runMonteCarlo(assets,years,alloc,eq,debt,gold)
+
+drawMC(results)
+
+showFunds()
+
+}
+
+function runGrowth(start,years,alloc,eq,debt,gold){
+
+let labels=[]
+let data=[]
+let value=start
+
+for(let i=0;i<=years;i++){
+
+labels.push(i)
+data.push(value)
+
+value=value*(1+(alloc.eq*eq+alloc.debt*debt+alloc.gold*gold))
+
+}
+
+new Chart(document.getElementById("growthChart"),{
+type:"line",
+data:{
+labels:labels,
+datasets:[{label:"Portfolio Value",data:data}]
+},
+options:{responsive:true}
+})
+
+}
+
+function randn(mean,sd){
+
+let u=Math.random()
+let v=Math.random()
+
+let z=Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)
+
+return mean+z*sd
+
+}
+
+function runMonteCarlo(start,years,alloc,eq,debt,gold){
+
+let runs=2000
+let results=[]
+
+for(let r=0;r<runs;r++){
+
+let value=start
+
+for(let y=0;y<years;y++){
+
+let er=randn(eq,0.18)
+let dr=randn(debt,0.05)
+let gr=randn(gold,0.12)
+
+let total=alloc.eq*er+alloc.debt*dr+alloc.gold*gr
+
+value=value*(1+total)
+
+}
+
+results.push(value)
+
+}
+
+return results
+
+}
+
+function drawMC(data){
+
+data.sort((a,b)=>a-b)
+
+new Chart(document.getElementById("mcChart"),{
+
+type:"bar",
+
+data:{
+labels:data.map((_,i)=>i),
+datasets:[{label:"Ending Portfolio Value",data:data}]
+}
+
+})
+
+}
+
+function showFunds(){
+
+let html=
+
+"<b>Equity Funds</b><ul>"+
+"<li>Parag Parikh Flexi Cap Fund</li>"+
+"<li>UTI Nifty 50 Index Fund</li>"+
+"<li>ICICI Prudential Nasdaq 100 Index Fund</li>"+
+"</ul>"+
+
+"<b>Debt Funds</b><ul>"+
+"<li>HDFC Corporate Bond Fund</li>"+
+"<li>ICICI Prudential Corporate Bond Fund</li>"+
+"</ul>"+
+
+"<b>Gold</b><ul>"+
+"<li>Nippon India Gold ETF</li>"+
+"</ul>"
+
+document.getElementById("funds").innerHTML=html
+
+}
+
+</script>
+
+</body>
+</html>
