@@ -142,4 +142,161 @@
         }
 
         function runPlanner() {
-            const startVal = parseFloat(document.getElementById
+            const startVal = parseFloat(document.getElementById("currentVal").value);
+            const monthlyExp = parseFloat(document.getElementById("income").value);
+            const risk = document.getElementById("risk").value;
+            const alloc = getAllocation(risk);
+
+            const userReturns = {
+                india: parseFloat(document.getElementById("ret_india").value)/100,
+                us: parseFloat(document.getElementById("ret_us").value)/100,
+                baf: parseFloat(document.getElementById("ret_baf").value)/100,
+                gold: parseFloat(document.getElementById("ret_gold").value)/100,
+                invit: parseFloat(document.getElementById("ret_invit").value)/100,
+                debt: parseFloat(document.getElementById("ret_debt").value)/100
+            };
+
+            updateTable(alloc, startVal);
+            updateSuggestions();
+            renderPie(alloc);
+            
+            const mcResults = runMonteCarlo(startVal, 30, alloc, monthlyExp*12, 0.06, userReturns);
+            const medianPath = updateGrowthChart(startVal, 30, alloc, monthlyExp*12, 0.06, userReturns);
+            updateMilestones(medianPath);
+        }
+
+        function updateTable(alloc, total) {
+            const mapping = { 
+                baf: ["Balanced Advantage", "Hybrid Stability & Lower Volatility"],
+                india: ["India Equity", "Core Wealth Compounding (Nifty/Flexicap)"],
+                us: ["US Equity", "USD Hedge & Tech Exposure (S&P 500)"],
+                invit: ["InvITs/REITs", "High Yield Dividend Income (Power/Infra)"],
+                debt: ["Debt/Fixed Income", "Capital Preservation & Emergency Buffer"],
+                gold: ["Gold/SGB", "Hedge against Inflation & Geopolitical Risk"]
+            };
+            let html = `<tr><th>Asset Class</th><th>%</th><th>Amount (₹)</th><th>Purpose</th></tr>`;
+            for (let key in alloc) {
+                html += `<tr>
+                    <td><b>${mapping[key][0]}</b></td>
+                    <td>${(alloc[key] * 100).toFixed(0)}%</td>
+                    <td>₹${((total * alloc[key])/10000000).toFixed(2)} Cr</td>
+                    <td><span class="purpose">${mapping[key][1]}</span></td>
+                </tr>`;
+            }
+            document.getElementById("allocationTable").innerHTML = html;
+        }
+
+        function updateMilestones(path) {
+            const years = [5, 10, 20, 30];
+            let html = `<tr><th>Timeline</th><th>Portfolio Value (₹)</th><th>Withdrawal/Mo</th></tr>`;
+            years.forEach(y => {
+                let monthlyW = (100000 * Math.pow(1.06, y)).toLocaleString('en-IN');
+                html += `<tr><td>Year ${y}</td><td><b>₹ ${(path[y]/10000000).toFixed(2)} Cr</b></td><td>₹ ${monthlyW}</td></tr>`;
+            });
+            document.getElementById("milestoneTable").innerHTML = html;
+            document.getElementById("finalVal").innerText = "₹ " + (path[30]/10000000).toFixed(2) + " Cr";
+        }
+
+        function updateSuggestions() {
+            document.getElementById("fundSuggestions").innerHTML = `
+                <p><b>⭐ Recommended Funds:</b><br>
+                • <b>BAF:</b> HDFC Balanced Advantage, ICICI Pru BAF<br>
+                • <b>US Equity:</b> Motilal Oswal S&P 500, Navi US Total Stock<br>
+                • <b>InvIT:</b> IndiGrid InvIT, PowerGrid InvIT (Yield ~9-10%)</p>
+            `;
+        }
+
+        function renderPie(alloc) {
+            const ctx = document.getElementById('pieChart').getContext('2d');
+            if(charts.pie) charts.pie.destroy();
+            charts.pie = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['BAF', 'India', 'US', 'InvIT', 'Debt', 'Gold'],
+                    datasets: [{
+                        data: Object.values(alloc),
+                        backgroundColor: ['#4299e1', '#0b3d91', '#2c5282', '#48bb78', '#cbd5e0', '#ecc94b']
+                    }]
+                },
+                options: { plugins: { legend: { position: 'right' } }, cutout: '65%' }
+            });
+        }
+
+        function runMonteCarlo(start, years, alloc, annualExpense, inflation, userReturns) {
+            const iterations = 1500;
+            const vol = { baf: 0.10, india: 0.18, us: 0.16, invit: 0.08, debt: 0.04, gold: 0.15 };
+            let finalValues = [];
+            let successes = 0;
+
+            for (let i = 0; i < iterations; i++) {
+                let balance = start;
+                let withdrawal = annualExpense;
+                let failed = false;
+
+                for (let y = 0; y < years; y++) {
+                    let yearReturn = 0;
+                    for (let asset in alloc) {
+                        const r = userReturns[asset] + (randn() * vol[asset]);
+                        yearReturn += alloc[asset] * r;
+                    }
+                    balance = (balance - withdrawal) * (1 + yearReturn);
+                    withdrawal *= (1 + inflation);
+                    if (balance <= 0) { failed = true; break; }
+                }
+                finalValues.push(balance > 0 ? balance : 0);
+                if (!failed) successes++;
+            }
+            document.getElementById("successProb").innerText = ((successes / iterations) * 100).toFixed(1) + "%";
+            updateMCChart(finalValues.sort((a,b)=>a-b));
+        }
+
+        function updateMCChart(data) {
+            const ctx = document.getElementById('mcChart').getContext('2d');
+            if(charts.mc) charts.mc.destroy();
+            charts.mc = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map((_, i) => i),
+                    datasets: [{ label: 'Ending Value Scenarios', data: data, borderColor: '#0b3d91', fill: false, pointRadius: 0 }]
+                },
+                options: { scales: { x: { display: false }, y: { beginAtZero: true } } }
+            });
+        }
+
+        function updateGrowthChart(start, years, alloc, annualExpense, inflation, userReturns) {
+            const ctx = document.getElementById('growthChart').getContext('2d');
+            let labels = ['Start'], values = [start];
+            let avgReturn = 0;
+            for(let key in alloc) avgReturn += alloc[key] * userReturns[key];
+
+            let balance = start;
+            let withdrawal = annualExpense;
+            for(let i=1; i<=years; i++) {
+                labels.push("Y" + i);
+                balance = (balance - withdrawal) * (1 + avgReturn);
+                withdrawal *= (1 + inflation);
+                values.push(balance > 0 ? balance : 0);
+            }
+            
+            if(charts.growth) charts.growth.destroy();
+            charts.growth = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{ label: 'Portfolio (₹ Crores)', data: values.map(v => v/10000000), borderColor: '#2f855a', backgroundColor: 'rgba(47, 133, 90, 0.1)', fill: true }]
+                }
+            });
+            return values;
+        }
+
+        function randn() {
+            let u = 0, v = 0;
+            while(u === 0) u = Math.random();
+            while(v === 0) v = Math.random();
+            return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+        }
+
+        runPlanner();
+    </script>
+</body>
+</html>
