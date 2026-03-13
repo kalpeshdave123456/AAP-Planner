@@ -2,41 +2,49 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Advanced Global FIRE Planner | 3Cr Edition</title>
+    <title>Asset Allocation Planner | 4% Rule & Stress-Testing</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --primary: #0b3d91; --glass: rgba(255, 255, 255, 0.96); }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: url('https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=2000') no-repeat center fixed; background-size: cover; }
-        .overlay { background: rgba(0, 0, 0, 0.5); min-height: 100vh; padding: 20px; backdrop-filter: blur(5px); }
-        .main-content { max-width: 1250px; margin: 0 auto; background: var(--glass); border-radius: 20px; padding: 30px; }
-        .grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 25px; margin-bottom: 25px; }
-        .card { background: white; padding: 20px; border-radius: 12px; border: 1px solid #eee; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; background: #f9f9f9; padding: 10px; border-radius: 8px; }
-        label { font-size: 0.8rem; font-weight: bold; color: #555; }
-        input, select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        button { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-        th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
-        th { background: #f4f7ff; font-size: 0.75rem; }
-        .stat-box { text-align: center; padding: 15px; background: #f0f7ff; border-radius: 10px; margin-bottom: 15px; border: 1px solid #bee3f8; }
-        .stat-val { font-size: 1.8rem; font-weight: 800; color: var(--primary); }
+        :root { --primary: #0b3d91; --success: #2f855a; --warning: #c05621; --glass: rgba(255, 255, 255, 0.97); }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; background: url('https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=2000') no-repeat center fixed; background-size: cover; color: #2d3748; }
+        .overlay { background: rgba(0, 0, 0, 0.55); min-height: 100vh; padding: 25px; backdrop-filter: blur(6px); }
+        .main-content { max-width: 1300px; margin: 0 auto; background: var(--glass); border-radius: 24px; padding: 35px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+        h1 { text-align: center; color: var(--primary); margin-bottom: 30px; font-weight: 800; text-transform: uppercase; letter-spacing: -0.5px; }
+        .grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 30px; margin-bottom: 30px; }
+        @media (max-width: 1000px) { .grid { grid-template-columns: 1fr; } }
+        .card { background: white; padding: 25px; border-radius: 18px; border: 1px solid #edf2f7; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; background: #f7fafc; padding: 15px; border-radius: 12px; }
+        label { font-size: 0.85rem; font-weight: 700; color: #4a5568; display: block; margin-bottom: 4px; }
+        input, select { width: 100%; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 0.95rem; }
+        button { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 10px; font-weight: 800; cursor: pointer; transition: 0.3s; font-size: 1.1rem; margin-top: 20px; }
+        button:hover { background: #1a5fb4; transform: scale(1.02); }
+        .stat-box { text-align: center; padding: 18px; border-radius: 15px; margin-bottom: 15px; border: 1px solid #e2e8f0; }
+        .stat-val { font-size: 1.8rem; font-weight: 800; }
+        .gap-alert { background: #fff5f5; border-color: #feb2b2; color: #c53030; }
+        .gap-ok { background: #f0fff4; border-color: #9ae6b4; color: #2f855a; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th, td { padding: 12px; border-bottom: 1px solid #edf2f7; text-align: left; }
+        th { background: #f7fafc; color: #718096; text-transform: uppercase; font-size: 0.7rem; }
+        .stress-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin: 2px; }
+        .high { background: #c6f6d5; color: #22543d; } /* Resilient */
+        .med { background: #feebc8; color: #744210; } /* Moderate */
     </style>
 </head>
 <body>
 <div class="overlay">
     <div class="main-content">
-        <h1 style="text-align:center; color:#0b3d91;">Global FIRE Retirement Planner</h1>
+        <h1>Asset Allocation Planner</h1>
         
         <div class="grid">
             <div class="card">
-                <h3>⚙️ Inputs & Returns</h3>
-                <label>Starting Portfolio (₹)</label>
+                <h3>⚙️ Portfolio Parameters</h3>
+                <label>Current Corpus (₹)</label>
                 <input type="number" id="currentVal" value="30000000">
                 
-                <label style="margin-top:10px; display:block;">Monthly Withdrawal (₹)</label>
+                <label style="margin-top:15px; display:block;">Desired Monthly Withdrawal (₹)</label>
                 <input type="number" id="income" value="100000">
 
-                <p style="font-weight:bold; margin-top:15px; margin-bottom:5px; font-size:0.85rem;">Adjust Expected Returns (%)</p>
+                <p style="font-weight:bold; margin-top:20px; margin-bottom:5px; font-size:0.85rem;">Expected Annual Returns (%)</p>
                 <div class="input-row">
                     <div><label>India Eq</label><input type="number" id="ret_india" value="12"></div>
                     <div><label>US Eq</label><input type="number" id="ret_us" value="10"></div>
@@ -46,67 +54,69 @@
                     <div><label>Debt</label><input type="number" id="ret_debt" value="6.5"></div>
                 </div>
 
-                <label>Risk Profile</label>
-                <select id="risk">
-                    <option value="balanced" selected>Balanced (Diversified)</option>
-                    <option value="aggressive">Aggressive (Growth)</option>
-                    <option value="conservative">Conservative (Safety)</option>
-                </select>
-                <button onclick="runPlanner()">Simulate Retirement</button>
+                <button onclick="runPlanner()">Analyze & Stress Test</button>
             </div>
 
             <div class="card">
-                <div class="stat-box">
-                    <div>Success Probability (30 Years)</div>
-                    <div id="successProb" style="font-size: 2.2rem; font-weight: 900; color: #2f855a;">--%</div>
+                <h3>📉 4% Rule Gap Analysis</h3>
+                <div id="gapBox" class="stat-box">
+                    <div id="gapStatusText" style="font-weight: bold;">Status</div>
+                    <div class="stat-val" id="gapAmount">₹ 0</div>
+                    <div id="gapMessage" style="font-size: 0.85rem; margin-top: 5px;">Calculation...</div>
                 </div>
-                <div class="stat-box">
-                    <div>Portfolio in 30 Years (Median)</div>
-                    <div class="stat-val" id="finalVal">₹ 0</div>
+                <div class="stat-box" style="background: #f0f7ff; color: #2c5282;">
+                    <div>Success Probability (Monte Carlo)</div>
+                    <div id="successProb" style="font-size: 2.2rem; font-weight: 900;">--%</div>
                 </div>
-                <canvas id="pieChart" height="180"></canvas>
+                <canvas id="pieChart" height="150"></canvas>
             </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 30px;">
+            <h3>🧩 Asset Allocation & Stress-Test Resilience</h3>
+            <table id="allocationTable"></table>
         </div>
 
         <div class="grid">
             <div class="card">
-                <h3>🧩 Asset Allocation & Purpose</h3>
-                <table id="allocationTable"></table>
+                <h3>🏆 Best Rated Funds (2026)</h3>
+                <div id="fundList" style="font-size: 0.9rem; line-height: 1.6;"></div>
             </div>
             <div class="card">
-                <h3>📊 Wealth Milestones (In Crores)</h3>
-                <table id="milestoneTable"></table>
-            </div>
-        </div>
-
-        <div class="card">
-            <h3>📈 Growth Projection & Monte Carlo Variance</h3>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                <h3>📈 30-Year Median Projection (Cr)</h3>
                 <canvas id="growthChart"></canvas>
-                <canvas id="mcChart"></canvas>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    // Global chart instances to allow proper resetting
     let chartInstances = {};
 
-    function getAllocation(risk) {
-        const profiles = {
-            conservative: { baf: 0.30, india: 0.10, us: 0.05, invit: 0.05, debt: 0.40, gold: 0.10 },
-            balanced: { baf: 0.20, india: 0.20, us: 0.20, invit: 0.10, debt: 0.20, gold: 0.10 },
-            aggressive: { baf: 0.05, india: 0.40, us: 0.35, invit: 0.10, debt: 0.05, gold: 0.05 }
-        };
-        return profiles[risk];
-    }
-
     function runPlanner() {
-        const startVal = parseFloat(document.getElementById("currentVal").value);
+        const currentVal = parseFloat(document.getElementById("currentVal").value);
         const monthlyExp = parseFloat(document.getElementById("income").value);
-        const risk = document.getElementById("risk").value;
-        const alloc = getAllocation(risk);
+        const annualExp = monthlyExp * 12;
+        const requiredFor4Percent = annualExp / 0.04;
+        
+        // Gap Analysis
+        const gapBox = document.getElementById("gapBox");
+        const gapAmtDisplay = document.getElementById("gapAmount");
+        const gapMsg = document.getElementById("gapMessage");
+        const statusText = document.getElementById("gapStatusText");
+
+        if (currentVal < requiredFor4Percent) {
+            const gap = requiredFor4Percent - currentVal;
+            gapBox.className = "stat-box gap-alert";
+            statusText.innerText = "⚠️ CORPUS SHORTFALL";
+            gapAmtDisplay.innerText = "₹ " + (gap / 10000000).toFixed(2) + " Cr More Needed";
+            gapMsg.innerText = `Based on the 4% rule, you need ₹${(requiredFor4Percent/10000000).toFixed(2)} Cr to safely withdraw ₹${monthlyExp.toLocaleString()} /mo indefinitely.`;
+        } else {
+            gapBox.className = "stat-box gap-ok";
+            statusText.innerText = "✅ CORPUS SUFFICIENT";
+            gapAmtDisplay.innerText = "Surplus: ₹ " + ((currentVal - requiredFor4Percent)/10000000).toFixed(2) + " Cr";
+            gapMsg.innerText = "Your corpus exceeds the 4% safety threshold.";
+        }
 
         const userReturns = {
             india: parseFloat(document.getElementById("ret_india").value)/100,
@@ -117,44 +127,51 @@
             debt: parseFloat(document.getElementById("ret_debt").value)/100
         };
 
-        updateTable(alloc, startVal);
+        const alloc = { baf: 0.20, india: 0.20, us: 0.20, invit: 0.10, debt: 0.20, gold: 0.10 };
+        updateTable(alloc, currentVal);
         renderPie(alloc);
+        updateFunds();
         
-        const mcResults = runMonteCarlo(startVal, 30, alloc, monthlyExp*12, 0.06, userReturns);
-        const medianPath = updateGrowthChart(startVal, 30, alloc, monthlyExp*12, 0.06, userReturns);
-        updateMilestones(medianPath);
+        const mcSuccess = runMonteCarlo(currentVal, 30, alloc, annualExp, 0.06, userReturns);
+        document.getElementById("successProb").innerText = mcSuccess + "%";
+        updateGrowthChart(currentVal, 30, alloc, annualExp, 0.06, userReturns);
     }
 
     function updateTable(alloc, total) {
-        const mapping = { 
-            baf: ["Balanced Advantage", "Hybrid Stability (Dynamic Equity)"],
-            india: ["India Equity", "Core Wealth (Nifty/Flexicap)"],
-            us: ["US Equity", "USD Hedge (S&P 500 Index)"],
-            invit: ["InvITs/REITs", "High Yield Dividend Cashflow"],
-            debt: ["Debt/Fixed Income", "Capital Buffer & Safety"],
-            gold: ["Gold/SGB", "Inflation & Geopolitical Hedge"]
+        const data = {
+            india: { name: "India Equity", stress: ["AI Growth: HIGH", "Deflation: MED", "Crisis: LOW"] },
+            us: { name: "US Equity", stress: ["AI Growth: HIGH", "Hyper-Inflation: MED"] },
+            baf: { name: "Balanced Advantage", stress: ["Crisis: HIGH", "Deflation: HIGH"] },
+            invit: { name: "InvITs/REITs", stress: ["UBI: HIGH", "Hyper-Inflation: HIGH"] },
+            debt: { name: "Debt", stress: ["Deflation: HIGH", "Crisis: MED"] },
+            gold: { name: "Gold", stress: ["Hyper-Inflation: HIGH", "Crisis: HIGH"] }
         };
-        let html = `<tr><th>Asset</th><th>%</th><th>Amount</th><th>Purpose</th></tr>`;
+        
+        let html = `<tr><th>Asset Class</th><th>Allocation</th><th>Stress-Test Resilience (Top Scenarios)</th></tr>`;
         for (let key in alloc) {
+            let tags = data[key].stress.map(s => {
+                let cls = s.includes("HIGH") ? "high" : "med";
+                return `<span class="stress-tag ${cls}">${s}</span>`;
+            }).join("");
+            
             html += `<tr>
-                <td><b>${mapping[key][0]}</b></td>
-                <td>${(alloc[key] * 100).toFixed(0)}%</td>
-                <td>₹${((total * alloc[key])/10000000).toFixed(2)} Cr</td>
-                <td style="font-size:0.75rem; color:#666;">${mapping[key][1]}</td>
+                <td><b>${data[key].name}</b></td>
+                <td>₹${((total * alloc[key])/10000000).toFixed(2)} Cr (${(alloc[key]*100)}%)</td>
+                <td>${tags}</td>
             </tr>`;
         }
         document.getElementById("allocationTable").innerHTML = html;
     }
 
-    function updateMilestones(path) {
-        const years = [5, 10, 20, 30];
-        let html = `<tr><th>Timeline</th><th>Portfolio Value</th><th>Withdrawal/Mo</th></tr>`;
-        years.forEach(y => {
-            let monthlyW = (100000 * Math.pow(1.06, y)).toLocaleString('en-IN');
-            html += `<tr><td>Year ${y}</td><td><b>₹ ${(path[y]/10000000).toFixed(2)} Cr</b></td><td>₹ ${monthlyW}</td></tr>`;
-        });
-        document.getElementById("milestoneTable").innerHTML = html;
-        document.getElementById("finalVal").innerText = "₹ " + (path[30]/10000000).toFixed(2) + " Cr";
+    function updateFunds() {
+        document.getElementById("fundList").innerHTML = `
+            <p><b>🇮🇳 India Equity:</b> Parag Parikh Flexi Cap, ICICI Pru Nifty 50 Index</p>
+            <p><b>⚖️ BAF:</b> HDFC Balanced Advantage, SBI Balanced Advantage</p>
+            <p><b>🏗 InvIT:</b> PowerGrid InvIT, IndiGrid Trust (Yield ~9-10%)</p>
+            <p><b>🥇 Gold:</b> Sovereign Gold Bonds (SGB), Nippon India Gold ETF</p>
+            <p><b>🏦 Debt:</b> Bharat Bond ETF, HDFC Corporate Bond Fund</p>
+            <p><b>🇺🇸 US Equity:</b> Motilal Oswal S&P 500, Navi US Total Market</p>
+        `;
     }
 
     function renderPie(alloc) {
@@ -164,67 +181,44 @@
             type: 'doughnut',
             data: {
                 labels: ['BAF', 'India', 'US', 'InvIT', 'Debt', 'Gold'],
-                datasets: [{
-                    data: Object.values(alloc),
-                    backgroundColor: ['#4299e1', '#0b3d91', '#2c5282', '#48bb78', '#cbd5e0', '#ecc94b']
-                }]
+                datasets: [{ data: Object.values(alloc), backgroundColor: ['#4299e1', '#0b3d91', '#2c5282', '#48bb78', '#cbd5e0', '#ecc94b'] }]
             },
-            options: { plugins: { legend: { position: 'right' } }, cutout: '65%' }
+            options: { plugins: { legend: { display: false } }, cutout: '75%' }
         });
     }
 
     function runMonteCarlo(start, years, alloc, annualExpense, inflation, userReturns) {
         const iterations = 1000;
         const vol = { baf: 0.10, india: 0.18, us: 0.16, invit: 0.08, debt: 0.04, gold: 0.15 };
-        let finalValues = [];
         let successes = 0;
 
         for (let i = 0; i < iterations; i++) {
             let balance = start;
             let withdrawal = annualExpense;
             let failed = false;
-
             for (let y = 0; y < years; y++) {
-                let yearReturn = 0;
-                for (let asset in alloc) {
-                    const r = userReturns[asset] + (randn() * vol[asset]);
-                    yearReturn += alloc[asset] * r;
-                }
-                balance = (balance - withdrawal) * (1 + yearReturn);
+                let yrReturn = 0;
+                for (let key in alloc) yrReturn += alloc[key] * (userReturns[key] + (randn() * vol[key]));
+                balance = (balance - withdrawal) * (1 + yrReturn);
                 withdrawal *= (1 + inflation);
                 if (balance <= 0) { failed = true; break; }
             }
-            finalValues.push(balance > 0 ? balance : 0);
             if (!failed) successes++;
         }
-        document.getElementById("successProb").innerText = ((successes / iterations) * 100).toFixed(1) + "%";
-        drawMC(finalValues.sort((a,b)=>a-b));
-    }
-
-    function drawMC(data) {
-        const ctx = document.getElementById('mcChart').getContext('2d');
-        if(chartInstances.mc) chartInstances.mc.destroy();
-        chartInstances.mc = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: data.map((_, i) => i),
-                datasets: [{ label: 'Monte Carlo Variance', data: data.map(v => v/10000000), borderColor: '#0b3d91', pointRadius: 0 }]
-            },
-            options: { scales: { x: { display: false } } }
-        });
+        return ((successes / iterations) * 100).toFixed(1);
     }
 
     function updateGrowthChart(start, years, alloc, annualExpense, inflation, userReturns) {
         const ctx = document.getElementById('growthChart').getContext('2d');
         let labels = ['Start'], values = [start];
-        let avgReturn = 0;
-        for(let key in alloc) avgReturn += alloc[key] * userReturns[key];
+        let avgR = 0;
+        for(let k in alloc) avgR += alloc[k] * userReturns[k];
 
         let balance = start;
         let withdrawal = annualExpense;
         for(let i=1; i<=years; i++) {
             labels.push("Y" + i);
-            balance = (balance - withdrawal) * (1 + avgReturn);
+            balance = (balance - withdrawal) * (1 + avgR);
             withdrawal *= (1 + inflation);
             values.push(balance > 0 ? balance : 0);
         }
@@ -232,12 +226,8 @@
         if(chartInstances.growth) chartInstances.growth.destroy();
         chartInstances.growth = new Chart(ctx, {
             type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{ label: 'Median Growth (₹ Cr)', data: values.map(v => v/10000000), borderColor: '#2f855a', fill: true, backgroundColor: 'rgba(47, 133, 90, 0.1)' }]
-            }
+            data: { labels: labels, datasets: [{ label: 'Median Growth (Cr)', data: values.map(v => v/10000000), borderColor: '#2f855a', fill: true, backgroundColor: 'rgba(47, 133, 90, 0.1)' }] }
         });
-        return values;
     }
 
     function randn() {
