@@ -175,23 +175,6 @@
     let pieChartInstance = null;
 
     function runPlanner() {
-        // Collect allocation values to validate sum
-        const rawAlloc = {
-            india: parseFloat(document.getElementById("alloc_india").value),
-            us: parseFloat(document.getElementById("alloc_us").value),
-            baf: parseFloat(document.getElementById("alloc_baf").value),
-            invit: parseFloat(document.getElementById("alloc_invit").value),
-            gold: parseFloat(document.getElementById("alloc_gold").value),
-            debt: parseFloat(document.getElementById("alloc_debt").value)
-        };
-
-        const totalAlloc = rawAlloc.india + rawAlloc.us + rawAlloc.baf + rawAlloc.invit + rawAlloc.gold + rawAlloc.debt;
-
-        if (totalAlloc !== 100) {
-            alert("Error: Total allocation must equal 100%. Current total: " + totalAlloc + "%");
-            return;
-        }
-
         const currentVal = parseFloat(document.getElementById("currentVal").value);
         const monthlyExp = parseFloat(document.getElementById("income").value);
         const annualExp = monthlyExp * 12;
@@ -212,4 +195,123 @@
         } else {
             gapBox.className = "stat-box gap-ok";
             statusText.innerText = "✅ Sustainable Corpus";
-            gapAmtDisplay.
+            gapAmtDisplay.innerText = "₹ " + ((currentVal - requiredFor4Percent)/10000000).toFixed(2) + " Cr Surplus";
+            gapMsg.innerText = "Your portfolio successfully meets the 4% safety threshold.";
+        }
+
+        const alloc = {
+            india: parseFloat(document.getElementById("alloc_india").value)/100,
+            us: parseFloat(document.getElementById("alloc_us").value)/100,
+            baf: parseFloat(document.getElementById("alloc_baf").value)/100,
+            invit: parseFloat(document.getElementById("alloc_invit").value)/100,
+            gold: parseFloat(document.getElementById("alloc_gold").value)/100,
+            debt: parseFloat(document.getElementById("alloc_debt").value)/100
+        };
+
+        const userReturns = {
+            india: parseFloat(document.getElementById("ret_india").value)/100,
+            us: parseFloat(document.getElementById("ret_us").value)/100,
+            baf: parseFloat(document.getElementById("ret_baf").value)/100,
+            gold: parseFloat(document.getElementById("ret_gold").value)/100,
+            invit: parseFloat(document.getElementById("ret_invit").value)/100,
+            debt: parseFloat(document.getElementById("ret_debt").value)/100
+        };
+
+        updateSelectionTable(alloc, currentVal);
+        updateAllocationTable(alloc, currentVal);
+        updateIncomeTable(alloc, currentVal, userReturns);
+        renderPieChart(alloc);
+    }
+
+    function updateSelectionTable(alloc, total) {
+        const names = { india: "India Equity", us: "US Equity", baf: "BAF", invit: "InvITs", gold: "Gold", debt: "Debt" };
+        let html = `<tr><th>Asset Class</th><th>Selected %</th><th>Value (₹)</th></tr>`;
+        for (let key in alloc) {
+            html += `<tr>
+                <td>${names[key]}</td>
+                <td>${(alloc[key]*100).toFixed(0)}%</td>
+                <td>₹${((total * alloc[key])/10000000).toFixed(2)} Cr</td>
+            </tr>`;
+        }
+        document.getElementById("selectionTable").innerHTML = html;
+    }
+
+    function updateAllocationTable(alloc, total) {
+        const data = {
+            india: { name: "India Equity", fund: "Parag Parikh Flexi Cap", tags: ["Growth", "AI-Upside"] },
+            us: { name: "US Equity", fund: "Motilal Oswal S&P 500", tags: ["USD Hedge", "Global Tech"] },
+            baf: { name: "Balanced Advantage", fund: "HDFC Balanced Advantage", tags: ["Crash Protection"] },
+            invit: { name: "InvITs/REITs", fund: "PowerGrid / IndiGrid", tags: ["Inflation Hedge", "Yield"] },
+            debt: { name: "Debt", fund: "Bharat Bond ETF / Gilt", tags: ["Safety", "Liquidity"] },
+            gold: { name: "Gold", fund: "Sovereign Gold Bond", tags: ["Crisis Hedge"] }
+        };
+        
+        let html = `<tr><th>Asset Class</th><th>Allocation %</th><th>Value (₹)</th><th>Suggested Fund</th><th>Attributes</th></tr>`;
+        for (let key in alloc) {
+            let tags = data[key].tags.map(t => `<span class="stress-tag">${t}</span>`).join("");
+            html += `<tr>
+                <td><b>${data[key].name}</b></td>
+                <td>${(alloc[key]*100).toFixed(0)}%</td>
+                <td>₹${((total * alloc[key])/10000000).toFixed(2)} Cr</td>
+                <td style="color:var(--primary); font-weight:600;">${data[key].fund}</td>
+                <td>${tags}</td>
+            </tr>`;
+        }
+        document.getElementById("allocationTable").innerHTML = html;
+    }
+
+    function updateIncomeTable(alloc, total, userReturns) {
+        let totalMonthly = 0;
+        const mapping = { baf: "Hybrid/BAF", india: "India Eq", us: "US Eq", invit: "InvITs", debt: "Debt", gold: "Gold" };
+        let html = `<tr><th>Asset</th><th>Exp. Return</th><th>Yearly Income</th><th>Monthly Contribution</th></tr>`;
+        
+        for (let key in alloc) {
+            const monthly = (total * alloc[key] * userReturns[key]) / 12;
+            totalMonthly += monthly;
+            html += `<tr>
+                <td>${mapping[key]}</td>
+                <td>${(userReturns[key] * 100).toFixed(1)}%</td>
+                <td>₹${(monthly * 12 / 100000).toFixed(2)} L</td>
+                <td>₹${Math.round(monthly).toLocaleString('en-IN')}</td>
+            </tr>`;
+        }
+        html += `<tr style="background:#f8fafc; font-weight:800; color:var(--success);">
+            <td colspan="3">Total Portfolio Yield Capacity</td>
+            <td>₹${Math.round(totalMonthly).toLocaleString('en-IN')} /mo</td>
+        </tr>`;
+        document.getElementById("incomeTable").innerHTML = html;
+    }
+
+    function renderPieChart(alloc) {
+        const ctx = document.getElementById('pieChart').getContext('2d');
+        if (pieChartInstance) pieChartInstance.destroy();
+        
+        pieChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['BAF', 'India Eq', 'US Eq', 'InvITs', 'Debt', 'Gold'],
+                datasets: [{
+                    data: Object.values(alloc),
+                    backgroundColor: ['#4299e1', '#0b3d91', '#2c5282', '#48bb78', '#cbd5e0', '#ecc94b'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                plugins: { 
+                    legend: { 
+                        position: 'bottom', 
+                        labels: { boxWidth: 10, padding: 10, font: { weight: 'bold', size: 10 } } 
+                    } 
+                },
+                cutout: '65%',
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    }
+
+    runPlanner();
+</script>
+</body>
+</html>
