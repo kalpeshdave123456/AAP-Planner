@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global FIRE Planner Pro | 2026 Edition</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #0b3d91;
+            --secondary: #1a5fb4;
+            --accent: #ffd700;
+            --glass: rgba(255, 255, 255, 0.92);
+        }
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            background: url('https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&q=80&w=2070') no-repeat center center fixed;
+            background-size: cover;
+            color: #333;
+        }
+        .overlay {
+            background: rgba(0, 0, 0, 0.4);
+            min-height: 100vh;
+            padding: 20px;
+            backdrop-filter: blur(3px);
+        }
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--glass);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        h1 { text-align: center; color: var(--primary); margin-bottom: 30px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+        .card { background: #fff; padding: 25px; border-radius: 15px; border: 1px solid #eee; height: fit-content; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-size: 0.9rem; font-weight: bold; margin-bottom: 5px; color: #555; }
+        input, select { width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: var(--primary); color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; font-size: 1rem; }
+        button:hover { background: var(--secondary); transform: translateY(-2px); }
+        .stat-box { text-align: center; padding: 20px; background: #f8faff; border-radius: 12px; margin-bottom: 20px; border-left: 5px solid var(--primary); }
+        .stat-val { font-size: 1.8rem; font-weight: 800; color: var(--primary); }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9rem; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f0f4f8; }
+        .success-rate { font-size: 2rem; color: #28a745; font-weight: 800; }
+        .reason-tag { font-size: 0.8rem; color: #666; font-style: italic; display: block; margin-top: 4px; }
+    </style>
+</head>
+<body>
+    <div class="overlay">
+        <div class="main-content">
+            <h1>Global FIRE Retirement Planner</h1>
+            <div class="grid">
+                <div class="card">
+                    <h3>🎯 Retirement Goals</h3>
+                    <div class="input-group">
+                        <label>Monthly Expense in Retirement (₹)</label>
+                        <input type="number" id="income" value="100000">
+                    </div>
+                    <div class="input-group">
+                        <label>Current Portfolio Value (₹)</label>
+                        <input type="number" id="currentVal" value="5000000">
+                    </div>
+                    <div class="input-group">
+                        <label>Retirement Horizon (Years)</label>
+                        <input type="number" id="years" value="25">
+                    </div>
+                    <div class="input-group">
+                        <label>Withdrawal Rate (%)</label>
+                        <input type="number" id="swr" value="4" step="0.1">
+                    </div>
+                    <div class="input-group">
+                        <label>Risk Appetite</label>
+                        <select id="risk">
+                            <option value="conservative">Conservative (Heavy Debt/Gold)</option>
+                            <option value="balanced" selected>Balanced (Diversified)</option>
+                            <option value="aggressive">Aggressive (Heavy Equity)</option>
+                        </select>
+                    </div>
+                    <button onclick="runPlanner()">Recalculate Strategy</button>
+                </div>
+
+                <div class="card">
+                    <div class="stat-box">
+                        <div>Target FIRE Corpus Needed</div>
+                        <div class="stat-val" id="portfolioNeeded">₹ 0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div>Monte Carlo Success Probability</div>
+                        <div class="success-rate" id="successProb">--%</div>
+                    </div>
+                    <canvas id="pieChart" height="200"></canvas>
+                </div>
+            </div>
+
+            <div class="grid" style="margin-top: 30px;">
+                <div class="card">
+                    <h3>🧩 Recommended Asset Allocation</h3>
+                    <table id="allocationTable"></table>
+                </div>
+
+                <div class="card">
+                    <h3>🏆 Top Picked Assets</h3>
+                    <div id="fundSuggestions"></div>
+                </div>
+            </div>
+
+            <div class="grid" style="margin-top: 30px;">
+                <div class="card">
+                    <h3>📈 Growth Projection (Median)</h3>
+                    <canvas id="growthChart"></canvas>
+                </div>
+                <div class="card">
+                    <h3>🎲 Monte Carlo Scenarios (2000 Runs)</h3>
+                    <canvas id="mcChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let charts = {};
+
+        function getAllocation(risk) {
+            const profiles = {
+                conservative: { india: 0.20, us: 0.15, debt: 0.45, gold: 0.15, invit: 0.05 },
+                balanced: { india: 0.35, us: 0.25, debt: 0.20, gold: 0.10, invit: 0.10 },
+                aggressive: { india: 0.45, us: 0.35, debt: 0.05, gold: 0.05, invit: 0.10 }
+            };
+            return profiles[risk];
+        }
+
+        function runPlanner() {
+            const income = parseFloat(document.getElementById("income").value);
+            const swr = parseFloat(document.getElementById("swr").value) / 100;
+            const years = parseInt(document.getElementById("years").value);
+            const currentVal = parseFloat(document.getElementById("currentVal").value);
+            const risk = document.getElementById("risk").value;
+            const alloc = getAllocation(risk);
+
+            const requiredPortfolio = (income * 12) / swr;
+            document.getElementById("portfolioNeeded").innerText = "₹ " + requiredPortfolio.toLocaleString('en-IN');
+
+            updateTable(alloc, requiredPortfolio);
+            updateSuggestions(alloc, requiredPortfolio);
+            renderPie(alloc);
+            
+            const mcResults = runMonteCarlo(currentVal, years, alloc);
+            updateMCChart(mcResults);
+            updateGrowthChart(currentVal, years, alloc);
+        }
+
+        function updateTable(alloc, total) {
+            let html = `<tr><th>Asset Class</th><th>%</th><th>Amount (₹)</th></tr>`;
+            const mapping = { india: "India Equity", us: "US Equity", debt: "Fixed Income", gold: "Gold", invit: "Real Estate/InvIT" };
+            for (let key in alloc) {
+                html += `<tr><td>${mapping[key]}</td><td>${(alloc[key] * 100).toFixed(0)}%</td><td>₹ ${(total * alloc[key]).toLocaleString('en-IN')}</td></tr>`;
+            }
+            document.getElementById("allocationTable").innerHTML = html;
+        }
+
+        function updateSuggestions(alloc, total) {
+            const suggestions = [
+                { title: "🇮🇳 India Equity", funds: "Parag Parikh Flexi Cap / Nifty 50 Index", reason: "Captures domestic GDP growth & blue-chip stability." },
+                { title: "🇺🇸 US Equity", funds: "Vanguard S&P 500 (VOO) / Nasdaq 100 (QQQ)", reason: "Currency hedge (USD) and Tech-heavy global exposure." },
+                { title: "🏦 Debt/Fixed Income", funds: "Bharat Bond ETF / Gilt Funds", reason: "Capital preservation and predictable yields." },
+                { title: "🥇 Gold", funds: "Sovereign Gold Bonds (SGB) / Gold ETFs", reason: "Universal hedge against inflation & geopolitical risk." },
+                { title: "🏗 InvITs", funds: "PowerGrid InvIT / Embassy REIT", reason: "High-yield cash flow through infrastructure/real estate." }
+            ];
+            
+            let html = "";
+            suggestions.forEach(s => {
+                html += `<p><strong>${s.title}</strong><br>${s.funds}<span class="reason-tag">${s.reason}</span></p>`;
+            });
+            document.getElementById("fundSuggestions").innerHTML = html;
+        }
+
+        function renderPie(alloc) {
+            const ctx = document.getElementById('pieChart').getContext('2d');
+            if(charts.pie) charts.pie.destroy();
+            charts.pie = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['India', 'US', 'Debt', 'Gold', 'InvIT'],
+                    datasets: [{
+                        data: Object.values(alloc),
+                        backgroundColor: ['#0b3d91', '#1a5fb4', '#cbd5e0', '#ffd700', '#4a5568']
+                    }]
+                },
+                options: { plugins: { legend: { position: 'bottom' } } }
+            });
+        }
+
+        function runMonteCarlo(start, years, alloc) {
+            const iterations = 2000;
+            const returns = { india: 0.12, us: 0.10, debt: 0.065, gold: 0.08, invit: 0.09 };
+            const vol = { india: 0.20, us: 0.18, debt: 0.04, gold: 0.15, invit: 0.10 };
+            let finalValues = [];
+            let successes = 0;
+
+            for (let i = 0; i < iterations; i++) {
+                let balance = start;
+                for (let y = 0; y < years; y++) {
+                    let yearReturn = 0;
+                    for (let asset in alloc) {
+                        const r = returns[asset] + (randn() * vol[asset]);
+                        yearReturn += alloc[asset] * r;
+                    }
+                    balance *= (1 + yearReturn);
+                }
+                finalValues.push(balance);
+                if (balance >= start) successes++;
+            }
+            
+            document.getElementById("successProb").innerText = ((successes / iterations) * 100).toFixed(1) + "%";
+            return finalValues.sort((a, b) => a - b);
+        }
+
+        function updateMCChart(data) {
+            const ctx = document.getElementById('mcChart').getContext('2d');
+            if(charts.mc) charts.mc.destroy();
+            charts.mc = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map((_, i) => i),
+                    datasets: [{ label: 'Scenario Ending Value', data: data, backgroundColor: '#0b3d91' }]
+                },
+                options: { scales: { x: { display: false } } }
+            });
+        }
+
+        function updateGrowthChart(start, years, alloc) {
+            const ctx = document.getElementById('growthChart').getContext('2d');
+            const returns = { india: 0.12, us: 0.10, debt: 0.065, gold: 0.08, invit: 0.09 };
+            let labels = [], values = [start];
+            let avgReturn = 0;
+            for(let key in alloc) avgReturn += alloc[key] * returns[key];
+
+            for(let i=1; i<=years; i++) {
+                labels.push("Year " + i);
+                values.push(values[i-1] * (1 + avgReturn));
+            }
+            
+            if(charts.growth) charts.growth.destroy();
+            charts.growth = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Start', ...labels],
+                    datasets: [{ label: 'Portfolio Growth', data: values, borderColor: '#0b3d91', fill: true, backgroundColor: 'rgba(11, 61, 145, 0.1)' }]
+                }
+            });
+        }
+
+        function randn() {
+            let u = 0, v = 0;
+            while(u === 0) u = Math.random();
+            while(v === 0) v = Math.random();
+            return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+        }
+
+        // Init
+        runPlanner();
+    </script>
+</body>
+</html>
