@@ -2,209 +2,316 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Advanced Global FIRE Planner</title>
+    <title>Asset Allocation Planner | Custom Selection Edition</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <style>
-        :root {
-            --primary: #0b3d91;
-            --glass: rgba(255, 255, 255, 0.9);
-        }
-
-        body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            margin: 0;
-            /* Using the uploaded image as the background */
-            background-image: url('image_bcae3a.jpg');
+        :root { --primary: #0b3d91; --success: #2f855a; --glass: rgba(255, 255, 255, 0.98); }
+        
+        body { 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            margin: 0; 
+            background: 
+                linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
+                url('https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=2000');
             background-size: cover;
-            background-position: center;
             background-attachment: fixed;
-            min-height: 100vh;
+            color: #2d3748;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: "$ ₹ Gold % £ € $ ₹ Gold %";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            font-size: 6rem;
+            font-weight: 900;
+            color: rgba(255, 255, 255, 0.04);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            pointer-events: none;
+            z-index: 0;
             padding: 20px;
         }
 
-        .main-wrapper {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: var(--glass);
-            padding: 30px;
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        .overlay { min-height: 100vh; padding: 25px; position: relative; z-index: 1; }
+        
+        .main-content { 
+            max-width: 1350px; 
+            margin: 0 auto; 
+            background: var(--glass); 
+            border-radius: 24px; 
+            padding: 40px; 
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); 
         }
 
-        h1 { text-align: center; color: var(--primary); margin-bottom: 30px; }
+        h1 { text-align: center; color: var(--primary); margin-bottom: 30px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+        
+        .top-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px; align-items: stretch; }
+        
+        .card { background: white; padding: 25px; border-radius: 18px; border: 1px solid #edf2f7; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); height: 100%; box-sizing: border-box; }
+        
+        .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; background: #f7fafc; padding: 15px; border-radius: 12px; }
+        
+        label { font-size: 0.8rem; font-weight: 700; color: #4a5568; display: block; margin-bottom: 4px; }
+        
+        input { width: 100%; padding: 8px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; box-sizing: border-box; }
+        
+        button { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 10px; font-weight: 800; cursor: pointer; transition: 0.2s; font-size: 1.1rem; margin-top: 20px; text-transform: uppercase; }
+        button:hover { background: #1a5fb4; transform: translateY(-1px); }
 
-        .container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
+        .stat-box { text-align: center; padding: 20px; border-radius: 15px; border: 1px solid #e2e8f0; margin-bottom: 20px; }
+        .gap-alert { background: #fff5f5; border-color: #feb2b2; color: #c53030; }
+        .gap-ok { background: #f0fff4; border-color: #9ae6b4; color: #2f855a; }
 
-        .card {
-            background: rgba(255, 255, 255, 0.8);
-            padding: 20px;
-            border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.3);
-            margin-bottom: 20px;
-        }
+        .chart-container { position: relative; height: 300px; width: 100%; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
 
-        .chart-container {
-            height: 300px; /* Fixed height to prevent jumping */
-            position: relative;
-        }
+        table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-top: 10px; }
+        th, td { padding: 12px 15px; border-bottom: 1px solid #edf2f7; text-align: left; }
+        th { background: #f8fafc; color: #718096; text-transform: uppercase; font-size: 0.7rem; font-weight: 800; }
+        
+        .stress-tag { display: inline-block; padding: 3px 8px; border-radius: 5px; font-size: 0.65rem; font-weight: bold; margin: 2px; background: #edf2f7; color: #4a5568; }
 
-        input, select {
-            width: 90%;
-            padding: 8px;
-            margin: 5px 0;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-
-        button {
-            padding: 12px 20px;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            width: 100%;
-            font-weight: bold;
-        }
-
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 10px; border-bottom: 1px solid #bbb; text-align: left; }
+        .footer-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 30px; margin-top: 30px; }
+        
+        .assumptions-box { background: #f1f5f9; padding: 25px; border-radius: 18px; font-size: 0.85rem; color: #475569; line-height: 1.6; }
+        
+        .contact-footer { margin-top: 25px; padding-top: 15px; border-top: 1px dashed #cbd5e1; font-size: 0.85rem; color: #64748b; }
+        a { color: var(--primary); text-decoration: none; font-weight: 600; }
     </style>
 </head>
-
 <body>
 
-<div class="main-wrapper">
-    <h1>Advanced Global FIRE Planner</h1>
+<div class="overlay">
+    <div class="main-content">
+        <h1>Asset Allocation Planner</h1>
+        
+        <div class="top-grid">
+            <div class="card">
+                <h3>⚙️ Portfolio Configuration</h3>
+                <label>Current Corpus (₹)</label>
+                <input type="number" id="currentVal" value="30000000">
+                
+                <label style="margin-top:15px; display:block;">Desired Monthly Withdrawal (₹)</label>
+                <input type="number" id="income" value="100000">
 
-    <div class="container">
-        <div class="card">
-            <h3>Inputs</h3>
-            Monthly Income Goal (₹) <input id="income" value="100000"><br>
-            Years <input id="years" value="30"><br>
-            Equity Return % <input id="eq" value="11"><br>
-            Debt Return % <input id="debt" value="6.5"><br>
-            Gold Return % <input id="gold" value="5"><br>
-            INVIT Yield % <input id="invit" value="8"><br>
-            Risk Profile:
-            <select id="risk">
-                <option value="conservative">Conservative</option>
-                <option value="balanced" selected>Balanced</option>
-                <option value="aggressive">Aggressive</option>
-            </select>
-            <br><br>
-            <button onclick="runPlanner()">Run Planner</button>
+                <p style="font-weight:bold; margin-top:20px; margin-bottom:5px; font-size:0.85rem;">Returns & Custom Allocation (%)</p>
+                <div class="input-row">
+                    <div><label>India Eq (%)</label><input type="number" id="alloc_india" value="20"></div>
+                    <div><label>India Return (%)</label><input type="number" id="ret_india" value="12"></div>
+                </div>
+                <div class="input-row">
+                    <div><label>US Eq (%)</label><input type="number" id="alloc_us" value="20"></div>
+                    <div><label>US Return (%)</label><input type="number" id="ret_us" value="10"></div>
+                </div>
+                <div class="input-row">
+                    <div><label>BAF (%)</label><input type="number" id="alloc_baf" value="20"></div>
+                    <div><label>BAF Return (%)</label><input type="number" id="ret_baf" value="10"></div>
+                </div>
+                <div class="input-row">
+                    <div><label>InvITs (%)</label><input type="number" id="alloc_invit" value="10"></div>
+                    <div><label>InvIT Return (%)</label><input type="number" id="ret_invit" value="9"></div>
+                </div>
+                <div class="input-row">
+                    <div><label>Gold (%)</label><input type="number" id="alloc_gold" value="10"></div>
+                    <div><label>Gold Return (%)</label><input type="number" id="ret_gold" value="8"></div>
+                </div>
+                <div class="input-row">
+                    <div><label>Debt (%)</label><input type="number" id="alloc_debt" value="20"></div>
+                    <div><label>Debt Return (%)</label><input type="number" id="ret_debt" value="6.5"></div>
+                </div>
+                <button onclick="runPlanner()">Recalculate Strategy</button>
+            </div>
+
+            <div class="card">
+                <h3 style="text-align: center;">🎯 Asset Allocation View</h3>
+                <div class="chart-container">
+                    <canvas id="pieChart"></canvas>
+                </div>
+                <h4>Your Selection Summary</h4>
+                <table id="selectionTable"></table>
+            </div>
         </div>
 
-        <div class="card">
-            <h3>Required Portfolio</h3>
-            <div id="portfolioNeeded">--</div>
-            <h3>Asset Allocation</h3>
-            <table id="allocationTable"></table>
+        <div class="card" style="margin-bottom: 30px;">
+            <div id="gapBox" class="stat-box">
+                <div id="gapStatusText" style="font-weight: bold; text-transform: uppercase;">Analysis</div>
+                <div id="gapAmount" style="font-size: 2.2rem; font-weight: 900; margin: 5px 0;">₹ 0</div>
+                <div id="gapMessage" style="font-size: 0.9rem;">Checking sustainability...</div>
+            </div>
+            
+            <h3>🧩 Suggested Funds Allocation</h3>
+            <div style="overflow-x: auto;">
+                <table id="allocationTable"></table>
+            </div>
         </div>
-    </div>
 
-    <div class="card">
-        <h3>Portfolio Growth Projection</h3>
-        <div class="chart-container"><canvas id="growthChart"></canvas></div>
-    </div>
+        <div class="footer-grid">
+            <div class="card">
+                <h3>💵 Monthly Income Breakdown</h3>
+                <table id="incomeTable"></table>
+                
+                <div class="contact-footer">
+                    <p><strong>💡 Feedback?</strong><br>
+                    Contact: <b>Kalpesh Dave</b> | 
+                    <a href="mailto:kalpeshdave@gmail.com">kalpeshdave@gmail.com</a></p>
+                </div>
+            </div>
 
-    <div class="card">
-        <h3>Monte Carlo Simulation</h3>
-        <div class="chart-container"><canvas id="mcChart"></canvas></div>
+            <div class="assumptions-box">
+                <h4>📌 Core Assumptions</h4>
+                <ul style="padding-left: 18px;">
+                    <li><strong>4% Safety Rule:</strong> Strategy matches target income to safe portfolio yield capacity.</li>
+                    <li><strong>Inflation Protection:</strong> Projections assume 6% annual inflation for future costs.</li>
+                    <li><strong>Taxation:</strong> Figures are pre-tax; actual yields depend on realized LTCG/STCG.</li>
+                    <li><strong>Yield Strategy:</strong> Calculated as (Allocation % * Expected Return %) / 12.</li>
+                </ul>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
-    // Variables to store chart instances for proper destruction
-    let growthChart, mcChart;
+    let pieChartInstance = null;
 
-    function getAllocation(risk){
-        if(risk=="conservative") return {india:0.25,us:0.20,debt:0.35,gold:0.10,invit:0.10}
-        if(risk=="balanced") return {india:0.35,us:0.25,debt:0.20,gold:0.10,invit:0.10}
-        return {india:0.40,us:0.30,debt:0.10,gold:0.10,invit:0.10}
-    }
+    function runPlanner() {
+        const currentVal = parseFloat(document.getElementById("currentVal").value);
+        const monthlyExp = parseFloat(document.getElementById("income").value);
+        const annualExp = monthlyExp * 12;
+        const requiredFor4Percent = annualExp / 0.04;
+        
+        // Gap Analysis Update
+        const gapBox = document.getElementById("gapBox");
+        const gapAmtDisplay = document.getElementById("gapAmount");
+        const gapMsg = document.getElementById("gapMessage");
+        const statusText = document.getElementById("gapStatusText");
 
-    function runPlanner(){
-        let income = parseFloat(document.getElementById("income").value);
-        let years = parseInt(document.getElementById("years").value);
-        let eq = parseFloat(document.getElementById("eq").value)/100;
-        let debt = parseFloat(document.getElementById("debt").value)/100;
-        let gold = parseFloat(document.getElementById("gold").value)/100;
-        let invit = parseFloat(document.getElementById("invit").value)/100;
-        let risk = document.getElementById("risk").value;
-        let alloc = getAllocation(risk);
-        let requiredPortfolio = (income * 12) / 0.04;
-
-        document.getElementById("portfolioNeeded").innerHTML = 
-            "<b>₹"+requiredPortfolio.toLocaleString()+"</b> required.";
-
-        let table = "<tr><th>Asset</th><th>%</th><th>Amount</th></tr>" +
-            row("India Equity",alloc.india,requiredPortfolio) +
-            row("US Equity",alloc.us,requiredPortfolio) +
-            row("Debt",alloc.debt,requiredPortfolio) +
-            row("Gold",alloc.gold,requiredPortfolio) +
-            row("INVIT",alloc.invit,requiredPortfolio);
-        document.getElementById("allocationTable").innerHTML = table;
-
-        runGrowth(requiredPortfolio, years, alloc, eq, debt, gold, invit);
-        drawMC(runMonteCarlo(requiredPortfolio, years, alloc, eq, debt, gold, invit));
-    }
-
-    function row(name, pct, total){
-        return "<tr><td>"+name+"</td><td>"+(pct*100)+"%</td><td>₹"+(total*pct).toLocaleString()+"</td></tr>";
-    }
-
-    function runGrowth(start, years, alloc, eq, debt, gold, invit){
-        let labels = [], data = [], value = start;
-        for(let i=0; i<=years; i++){
-            labels.push(i);
-            data.push(value);
-            value *= (1 + (alloc.india*eq + alloc.us*eq + alloc.debt*debt + alloc.gold*gold + alloc.invit*invit));
+        if (currentVal < requiredFor4Percent) {
+            const gap = requiredFor4Percent - currentVal;
+            gapBox.className = "stat-box gap-alert";
+            statusText.innerText = "⚠️ Shortfall Against 4% Rule";
+            gapAmtDisplay.innerText = "₹ " + (gap / 10000000).toFixed(2) + " Cr More Needed";
+            gapMsg.innerText = `To safely withdraw ₹${monthlyExp.toLocaleString()}/mo, a ₹${(requiredFor4Percent/10000000).toFixed(2)} Cr corpus is recommended.`;
+        } else {
+            gapBox.className = "stat-box gap-ok";
+            statusText.innerText = "✅ Sustainable Corpus";
+            gapAmtDisplay.innerText = "₹ " + ((currentVal - requiredFor4Percent)/10000000).toFixed(2) + " Cr Surplus";
+            gapMsg.innerText = "Your portfolio successfully meets the 4% safety threshold.";
         }
-        if(growthChart) growthChart.destroy();
-        growthChart = new Chart(document.getElementById("growthChart"), {
-            type: "line",
-            data: { labels: labels, datasets: [{ label: "Portfolio Value", data: data, borderColor: "#0b3d91" }] },
-            options: { maintainAspectRatio: false }
-        });
+
+        const alloc = {
+            india: parseFloat(document.getElementById("alloc_india").value)/100,
+            us: parseFloat(document.getElementById("alloc_us").value)/100,
+            baf: parseFloat(document.getElementById("alloc_baf").value)/100,
+            invit: parseFloat(document.getElementById("alloc_invit").value)/100,
+            gold: parseFloat(document.getElementById("alloc_gold").value)/100,
+            debt: parseFloat(document.getElementById("alloc_debt").value)/100
+        };
+
+        const userReturns = {
+            india: parseFloat(document.getElementById("ret_india").value)/100,
+            us: parseFloat(document.getElementById("ret_us").value)/100,
+            baf: parseFloat(document.getElementById("ret_baf").value)/100,
+            gold: parseFloat(document.getElementById("ret_gold").value)/100,
+            invit: parseFloat(document.getElementById("ret_invit").value)/100,
+            debt: parseFloat(document.getElementById("ret_debt").value)/100
+        };
+
+        updateSelectionTable(alloc, currentVal);
+        updateAllocationTable(alloc, currentVal);
+        updateIncomeTable(alloc, currentVal, userReturns);
+        renderPieChart(alloc);
     }
 
-    function runMonteCarlo(start, years, alloc, eq, debt, gold, invit){
-        let runs = 500, results = [];
-        for(let r=0; r<runs; r++){
-            let value = start;
-            for(let y=0; y<years; y++){
-                let total = alloc.india*randn(eq,0.18) + alloc.us*randn(eq,0.18) + alloc.debt*randn(debt,0.05) + alloc.gold*randn(gold,0.12) + alloc.invit*randn(invit,0.05);
-                value *= (1 + total);
+    function updateSelectionTable(alloc, total) {
+        const names = { india: "India Equity", us: "US Equity", baf: "BAF", invit: "InvITs", gold: "Gold", debt: "Debt" };
+        let html = `<tr><th>Asset Class</th><th>Selected %</th><th>Value (₹)</th></tr>`;
+        for (let key in alloc) {
+            html += `<tr>
+                <td>${names[key]}</td>
+                <td>${(alloc[key]*100).toFixed(0)}%</td>
+                <td>₹${((total * alloc[key])/10000000).toFixed(2)} Cr</td>
+            </tr>`;
+        }
+        document.getElementById("selectionTable").innerHTML = html;
+    }
+
+    function updateAllocationTable(alloc, total) {
+        const data = {
+            india: { name: "India Equity", fund: "Parag Parikh Flexi Cap", tags: ["Growth", "AI-Upside"] },
+            us: { name: "US Equity", fund: "Motilal Oswal S&P 500", tags: ["USD Hedge", "Global Tech"] },
+            baf: { name: "Balanced Advantage", fund: "HDFC Balanced Advantage", tags: ["Crash Protection"] },
+            invit: { name: "InvITs/REITs", fund: "PowerGrid / IndiGrid", tags: ["Inflation Hedge", "Yield"] },
+            debt: { name: "Debt", fund: "Bharat Bond ETF / Gilt", tags: ["Safety", "Liquidity"] },
+            gold: { name: "Gold", fund: "Sovereign Gold Bond", tags: ["Crisis Hedge"] }
+        };
+        
+        let html = `<tr><th>Asset Class</th><th>Allocation %</th><th>Value (₹)</th><th>Suggested Fund</th><th>Attributes</th></tr>`;
+        for (let key in alloc) {
+            let tags = data[key].tags.map(t => `<span class="stress-tag">${t}</span>`).join("");
+            html += `<tr>
+                <td><b>${data[key].name}</b></td>
+                <td>${(alloc[key]*100).toFixed(0)}%</td>
+                <td>₹${((total * alloc[key])/10000000).toFixed(2)} Cr</td>
+                <td style="color:var(--primary); font-weight:600;">${data[key].fund}</td>
+                <td>${tags}</td>
+            </tr>`;
+        }
+        document.getElementById("allocationTable").innerHTML = html;
+    }
+
+    function updateIncomeTable(alloc, total, userReturns) {
+        let totalMonthly = 0;
+        const mapping = { baf: "Hybrid/BAF", india: "India Eq", us: "US Eq", invit: "InvITs", debt: "Debt", gold: "Gold" };
+        let html = `<tr><th>Asset</th><th>Exp. Return</th><th>Yearly Income</th><th>Monthly Contribution</th></tr>`;
+        
+        for (let key in alloc) {
+            const monthly = (total * alloc[key] * userReturns[key]) / 12;
+            totalMonthly += monthly;
+            html += `<tr>
+                <td>${mapping[key]}</td>
+                <td>${(userReturns[key] * 100).toFixed(1)}%</td>
+                <td>₹${(monthly * 12 / 100000).toFixed(2)} L</td>
+                <td>₹${Math.round(monthly).toLocaleString('en-IN')}</td>
+            </tr>`;
+        }
+        html += `<tr style="background:#f8fafc; font-weight:800; color:var(--success);">
+            <td colspan="3">Total Portfolio Yield Capacity</td>
+            <td>₹${Math.round(totalMonthly).toLocaleString('en-IN')} /mo</td>
+        </tr>`;
+        document.getElementById("incomeTable").innerHTML = html;
+    }
+
+    function renderPieChart(alloc) {
+        const ctx = document.getElementById('pieChart').getContext('2d');
+        if (pieChartInstance) pieChartInstance.destroy();
+        
+        pieChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['BAF', 'India Eq', 'US Eq', 'InvITs', 'Debt', 'Gold'],
+                datasets: [{
+                    data: Object.values(alloc),
+                    backgroundColor: ['#4299e1', '#0b3d91', '#2c5282', '#48bb78', '#cbd5e0', '#ecc94b'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                plugins: { 
+                    legend: { 
+                        position: 'bottom', 
+                        labels: { boxWidth: 10, padding: 10, font: { weight: 'bold', size: 10 } } 
+                    } 
+                },
+                cutout: '65%',
+                responsive: true,
+                maintainAspectRatio: false
             }
-            results.push(value);
-        }
-        return results;
-    }
-
-    function randn(mean, sd){
-        return mean + (Math.sqrt(-2*Math.log(Math.random())) * Math.cos(2*Math.PI*Math.random())) * sd;
-    }
-
-    function drawMC(data){
-        data.sort((a,b)=>a-b);
-        if(mcChart) mcChart.destroy();
-        mcChart = new Chart(document.getElementById("mcChart"), {
-            type: "bar",
-            data: { labels: data.map((_,i)=>i), datasets: [{ label: "Ending Portfolio Value", data: data, backgroundColor: "#0b3d91" }] },
-            options: { maintainAspectRatio: false, scales: { x: { display: false } } }
         });
     }
 
     runPlanner();
 </script>
-
 </body>
 </html>
